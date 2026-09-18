@@ -367,21 +367,38 @@ const CASES = [
         ['评价人自己的卡片仍写「你认为」', /你认为/.test(t)],
         ['偏差说明也改用「她」：与她/他的自我认知',
           /与她的自我认知/.test(t) && !/与你的自我认知/.test(t)],
-        // 结果卡里的人格形象必须显式居中，否则会贴左侧、看起来像一块空白
-        ['结果卡里的人格形象外层是 flex 居中', (() => {
+        ['票数持平的说明也用「她」：按她自己的认知',
+          /按她自己的认知/.test(t) && !/按你自己的认知/.test(t)],
+        // 形象图与类型代号合并到同一排（省掉一整行）
+        ['形象图与类型代号在同一排（同一个父节点）', (() => {
           const av = doc.querySelector('.result-card .type-card__avatar');
-          const wrap = av && av.parentElement;
-          return !!wrap && /flex/.test(wrap.style.display || '') &&
-            /center/.test(wrap.style.justifyContent || '');
+          const codeEl = doc.querySelector('.result-card .result-card__code');
+          return !!av && !!codeEl && av.parentElement === codeEl.parentElement;
         })()],
-        ['人格形象确实渲染在「who」行与类型码之间', (() => {
+        ['该排是 flex 且居中（块级图不会跟着 text-align 居中）', (() => {
+          const av = doc.querySelector('.result-card .type-card__avatar');
+          const row = av && av.parentElement;
+          return !!row && /flex/.test(row.style.display || '') &&
+            /center/.test(row.style.justifyContent || '');
+        })()],
+        ['类型代号仍渲染在形象图那一排里', (() => {
           const card = doc.querySelector('.result-card');
           if (!card) return false;
           const kids = [...card.children];
           const iWho = kids.findIndex((n) => n.classList.contains('result-card__who'));
-          const iCode = kids.findIndex((n) => n.classList.contains('result-card__code'));
-          const iAv = kids.findIndex((n) => !!n.querySelector('.type-card__avatar'));
-          return iWho >= 0 && iAv > iWho && iCode > iAv;
+          const iRow = kids.findIndex((n) => n.classList.contains('result-card__row'));
+          const iCn = kids.findIndex((n) => n.classList.contains('result-card__cn'));
+          return iWho >= 0 && iRow === iWho + 1 && iCn > iRow;
+        })()],
+        // 中文名不能丢：typeNames 的兜底链原来漏了 t.cn，结果卡只剩代号和英文名。
+        // 桩数据里「你认为」这张卡的答案是 ENFP（活动家 / Campaigner）。
+        ['结果卡带出中文名（活动家）', (() => {
+          const cn = doc.querySelector('.result-card .result-card__cn');
+          return !!cn && cn.textContent === '活动家';
+        })()],
+        ['结果卡带出英文名（Campaigner）', (() => {
+          const en = doc.querySelector('.result-card .result-card__en');
+          return !!en && en.textContent === 'Campaigner';
         })()]
       ];
     }

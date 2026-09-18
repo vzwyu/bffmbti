@@ -8,12 +8,16 @@
 
   var VOTER_KEY = 'mbti_voter_name';
 
-  // 从 MBTI.get 的结果里尽量宽容地取中英文名（不同版本字段可能不同）
+  // 从 MBTI.get 的结果里取中英文名。
+  // 本地数据结构实测是 { code, cn, en, slug, group, tagline, color }，
+  // 所以 cn / en 必须排在最前。原来这条链漏了 t.cn，
+  // 而 en 那条恰好带了 t.en —— 结果就是**结果卡一直缺中文名**，只剩代号和英文名。
+  // 其余字段是历史命名兜底，保留以防上游换过名。
   function typeNames(t) {
     if (!t) return { cn: '', en: '' };
     return {
-      cn: t.cnName || t.nameCn || t.name_cn || t.name || '',
-      en: t.enName || t.nameEn || t.name_en || t.en || ''
+      cn: t.cn || t.cnName || t.nameCn || t.name_cn || t.name || '',
+      en: t.en || t.enName || t.nameEn || t.name_en || ''
     };
   }
 
@@ -344,23 +348,27 @@
     }));
 
     if (t) {
-      // 人格形象图。**必须显式居中**：
-      // 卡片用的是 text-align:center，但那只管行内内容；
-      // .type-card__avatar 是块级元素，在普通块容器里会贴在左侧，
-      // 于是「你认为」和「ENFP」之间看起来就是一大块空白（用户就是这么反馈的）。
-      // 外层用 flex 居中，同时把上下留白收紧。
+      // 人格形象图与类型代号放**同一排**：卡片原本一行一个元素，
+      // 手机上三张卡纵向堆叠会很长，合并后省掉一整行。
+      // 外层必须用 flex 显式居中 —— 卡片是 text-align:center，
+      // 但那只管行内内容，块级的形象图不会跟着居中（会贴左侧，看起来像空白）。
       card.appendChild(UI.el('div', {
+        class: 'result-card__row',
         style: {
           display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
+          gap: 'var(--sp-3,12px)',
           margin: 'var(--sp-3,12px) 0 var(--sp-2,8px)'
         }
-      }, [UI.persona(t)]));
-      card.appendChild(UI.el('div', {
-        class: 'result-card__code',
-        text: code,
-        style: { fontSize: 'var(--fs-xl,28px)', fontWeight: '700', color: 'var(--g, var(--accent, currentColor))' }
-      }));
+      }, [
+        UI.persona(t),
+        UI.el('div', {
+          class: 'result-card__code',
+          text: code,
+          style: { fontSize: 'var(--fs-xl,28px)', fontWeight: '700', color: 'var(--g, var(--accent, currentColor))' }
+        })
+      ]));
       if (names.cn) card.appendChild(UI.el('div', { class: 'result-card__cn', text: names.cn }));
       if (names.en) card.appendChild(UI.el('div', {
         class: 'result-card__en',

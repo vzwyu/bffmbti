@@ -484,7 +484,7 @@
       } else {
         note = total + ' 人中，' + a.leftCount + ' 人认为是' + a.leftCn + '（' + a.left + '），'
           + a.rightCount + ' 人认为是' + a.rightCn + '（' + a.right + '）。';
-        if (tie) note += '票数持平，按你自己的认知取 ' + a.majority + '。';
+        if (tie) note += '票数持平，按' + selfLabel + '自己的认知取 ' + a.majority + '。';
         else if (diff) note += '多数人认为是 ' + a.majority + '，与' + selfLabel + '的自我认知 ' + a.selfChoice + ' 不同。';
         else if (a.selfChoice) note += '多数人认为是 ' + a.majority + '，与' + selfLabel + '的自我认知一致。';
       }
