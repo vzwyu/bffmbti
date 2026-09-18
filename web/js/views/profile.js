@@ -128,26 +128,74 @@
   }
 
   /* ---------- 区块 2 · 我的 MBTI ---------- */
+
+  /**
+   * 一个类型的展示块。个人主页左右两栏共用（左边「我的 MBTI」，右边「大多数人认为我是」），
+   * 保证两边格式完全一致。
+   * 布局：形象图与代号**同一排**，下面中文名·英文名、再下面一句话说明。
+   */
+  function typeBlock(type) {
+    var box = UI.el('div', { class: 'mbti-type' });
+    if (type.group) box.setAttribute('data-group', type.group);
+
+    box.appendChild(UI.el('div', { class: 'mbti-type__row' }, [
+      UI.persona(type),
+      UI.el('div', {
+        class: 'mbti-type__code',
+        text: type.code,
+        style: { color: type.color || 'var(--g)' }
+      })
+    ]));
+    // 下面两行要紧贴代号那排。原来用 .stack（子项间距 16px）+ p 自带 16px 下边距，
+    // 看起来中间空了一大块 —— 具体间距在 .mbti-type__names / __tagline 里控制。
+    box.appendChild(UI.el('div', { class: 'mbti-type__names', text: type.cn + ' · ' + type.en }));
+    if (type.tagline) {
+      box.appendChild(UI.el('p', { class: 'mbti-type__tagline muted', text: type.tagline }));
+    }
+    return box;
+  }
+
   function buildMbti(ctx) {
     var user = ctx.store.user;
     var wrap = UI.el('section', { class: 'stack' });
-    wrap.appendChild(UI.el('h2', { text: '我的 MBTI' }));
 
     // MBTI.get 可能返回 null，需判空
     var type = user.mbti_self ? MBTI.get(user.mbti_self) : null;
 
     if (type) {
-      var box = UI.el('div', { class: 'stack' });
-      box.setAttribute('data-group', type.group);
-      box.appendChild(UI.persona(type));
-      var code = UI.el('div', { text: type.code });
-      code.style.fontSize = '28px';
-      code.style.fontWeight = '700';
-      code.style.color = type.color || 'var(--g)';
-      box.appendChild(code);
-      box.appendChild(UI.el('div', { text: type.cn + ' · ' + type.en }));
-      if (type.tagline) box.appendChild(UI.el('p', { class: 'muted', text: type.tagline }));
-      wrap.appendChild(box);
+      // 左栏：我自己选的类型
+      var leftCol = UI.el('div', { class: 'mbti-pair__col' }, [
+        UI.el('h2', { text: '我的 MBTI' }),
+        typeBlock(type)
+      ]);
+
+      // 右栏：大多数人认为我是 XXX —— 格式与左栏一致，数据来自 summary
+      var majoritySlot = UI.el('div', { class: 'mbti-type' });
+      majoritySlot.appendChild(UI.el('p', { class: 'muted', text: '统计中…' }));
+      var rightCol = UI.el('div', { class: 'mbti-pair__col' }, [
+        UI.el('h2', { text: '大多数人认为我是' }),
+        majoritySlot
+      ]);
+
+      wrap.appendChild(UI.el('div', { class: 'mbti-pair' }, [leftCol, rightCol]));
+
+      API.summary(user.token).then(function (res) {
+        var s = (res && res.summary) || {};
+        var mt = s.majority_mbti ? MBTI.get(s.majority_mbti) : null;
+        UI.clear(majoritySlot);
+        if (mt) {
+          majoritySlot.appendChild(typeBlock(mt));
+        } else {
+          majoritySlot.appendChild(UI.el('p', {
+            class: 'muted',
+            text: s.total_votes ? '大家还没评出一致的看法' : '还没有人评价你'
+          }));
+        }
+      }).catch(function () {
+        // 取不到统计不影响左边展示
+        UI.clear(majoritySlot);
+        majoritySlot.appendChild(UI.el('p', { class: 'muted', text: '暂时取不到统计' }));
+      });
 
       // 修改入口：是否能改、按钮文案都由后端决定
       var editBtn = UI.el('button', { class: 'btn', type: 'button', text: '加载中…' });
@@ -174,6 +222,8 @@
         UI.toast(errMsg(err, '加载修改权限失败'), 'error');
       });
     } else {
+      // 没选类型时没有右栏，标题要在这里补上（有类型时标题在左栏里）
+      wrap.appendChild(UI.el('h2', { text: '我的 MBTI' }));
       wrap.appendChild(UI.el('p', { text: '还没选择你的类型' }));
       var pickBtn = UI.el('button', { class: 'btn btn--primary', type: 'button', text: '去选择' });
       pickBtn.addEventListener('click', function () { ctx.navigate('/'); });

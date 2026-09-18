@@ -451,6 +451,53 @@ const CASES = [
         ['页底退出按钮为整行（.btn--block）',
           btns.some((b) => b.classList.contains('btn--block'))],
 
+        // ---- 「我的 MBTI」与「大多数人认为我是」并排，格式一致 ----
+        ['存在双栏容器 .mbti-pair', doc.querySelectorAll('.mbti-pair').length === 1],
+        ['双栏里恰好两列', doc.querySelectorAll('.mbti-pair > .mbti-pair__col').length === 2],
+        ['左栏标题为「我的 MBTI」', (() => {
+          const c = doc.querySelectorAll('.mbti-pair__col')[0];
+          const h = c && c.querySelector('h2');
+          return !!h && h.textContent === '我的 MBTI';
+        })()],
+        ['右栏标题为「大多数人认为我是」', (() => {
+          const c = doc.querySelectorAll('.mbti-pair__col')[1];
+          const h = c && c.querySelector('h2');
+          return !!h && h.textContent === '大多数人认为我是';
+        })()],
+        ['右栏按 summary 渲染出大多数人的结论（INTJ）', (() => {
+          const c = doc.querySelectorAll('.mbti-pair__col')[1];
+          const code = c && c.querySelector('.mbti-type__code');
+          return !!code && code.textContent === 'INTJ';
+        })()],
+        ['两栏格式一致（都有代号行 / 中文名行 / 一句话说明）', (() => {
+          const cols = [...doc.querySelectorAll('.mbti-pair__col')];
+          return cols.length === 2 && cols.every((c) =>
+            !!c.querySelector('.mbti-type__row') &&
+            !!c.querySelector('.mbti-type__names') &&
+            !!c.querySelector('.mbti-type__tagline'));
+        })()],
+        ['两栏的形象图都与代号在同一排', (() => {
+          const cols = [...doc.querySelectorAll('.mbti-pair__col')];
+          return cols.length === 2 && cols.every((c) => {
+            const row = c.querySelector('.mbti-type__row');
+            return !!row && !!row.querySelector('.type-card__avatar') &&
+              !!row.querySelector('.mbti-type__code');
+          });
+        })()],
+        // jsdom 不做布局计算，间距只能查 CSS 关键值。
+        // 这两行必须是小间距 —— 不能落回 .stack 的 16px + p 自带的 16px 下边距。
+        ['中文名与说明的间距已收紧（6px / 2px）', (() => {
+          const css = fs.readFileSync(path.join(WEB, 'css/design-system.css'), 'utf8');
+          return /\.mbti-type__names\s*\{\s*margin-top:\s*6px/.test(css) &&
+            /\.mbti-type__tagline\s*\{\s*margin:\s*2px 0 0/.test(css);
+        })()],
+        ['双栏在窄屏改成单列', (() => {
+          const css = fs.readFileSync(path.join(WEB, 'css/design-system.css'), 'utf8');
+          const i = css.indexOf('@media (max-width: 520px)');
+          return i >= 0 &&
+            /\.mbti-pair\s*\{[^}]*grid-template-columns:\s*1fr/.test(css.slice(i, i + 4000));
+        })()],
+
         ['存在「生成分享链接」按钮', shareBtns.length > 0, '实际 ' + shareBtns.length],
         ['分享按钮与修改按钮并排（同一 flex 行，窄屏自动换行）', inRowWithEdit],
         ['点击分享按钮弹出弹窗', !!panel],

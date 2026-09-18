@@ -676,7 +676,23 @@ code { font-family: var(--font-mono); font-size: 0.92em; }
   white-space: normal;
 }
 
-/* ---------- 20. 响应式 ---------- */
+/* ---------- 20. 个人主页：我的 MBTI / 大多数人认为我是 ---------- */
+/* 左「我的 MBTI」右「大多数人认为我是」，两栏格式完全一致；窄屏改成上下堆叠 */
+.mbti-pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-5); align-items: start; }
+.mbti-pair__col { display: flex; flex-direction: column; min-width: 0; }
+.mbti-pair__col > h2 { margin-bottom: var(--sp-3); }
+
+/* 形象图与代号同一排 —— 原来一行一个元素，纵向太占地方 */
+.mbti-type__row { display: flex; align-items: center; gap: var(--sp-3); }
+.mbti-type__code { font-size: 28px; font-weight: 700; line-height: 1; }
+
+/* 中文名与一句话说明要紧贴上面那排。
+   原来这两行挂在 .stack 上（子项间距 16px），再加 p 自带的 16px 下边距，
+   中间就空出一大截 —— 这里显式压到 6px / 2px。 */
+.mbti-type__names { margin-top: 6px; font-size: var(--fs-body); }
+.mbti-type__tagline { margin: 2px 0 0; font-size: var(--fs-sm); line-height: 1.5; }
+
+/* ---------- 21. 响应式 ---------- */
 @media (max-width: 900px) {
   .types-grid { gap: var(--sp-2); }
   .type-card { min-height: 132px; padding: var(--sp-3) var(--sp-1); }
@@ -703,6 +719,8 @@ code { font-family: var(--font-mono); font-size: 0.92em; }
   .toast-wrap { bottom: var(--sp-4); width: calc(100% - var(--sp-6)); }
   .share-box { flex-direction: column; }
   .dvx__side--right { justify-content: flex-start; }
+  /* 窄屏：「我的 MBTI」与「大多数人认为我是」改为上下堆叠 */
+  .mbti-pair { grid-template-columns: 1fr; gap: var(--sp-4); }
 
   /* ── 手机端把「朋友们的具体选择」整体压低 ──
      目标是让 4 个维度条能在一屏内截全，不用滚动截屏。
