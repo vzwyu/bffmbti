@@ -1,0 +1,59 @@
+[Unit]
+Description=MBTI Game API (在朋友眼中，你的MBTI是什么？)
+Documentation=https://www.oictech.cn/games/mbti/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/mbti-game/server
+
+ExecStart=/usr/bin/node /opt/mbti-game/server/src/index.js
+
+# 崩溃自动拉起；起步时若反复失败则退避，避免打爆日志
+Restart=always
+RestartSec=3
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+Environment=NODE_ENV=production
+Environment=MBTI_PORT=3000
+Environment=MBTI_HOST=127.0.0.1
+Environment=MBTI_BASE_PATH=/games/mbti/api
+Environment=MBTI_DATA_DIR=/var/lib/mbti-game
+Environment=MBTI_DB_PATH=/var/lib/mbti-game/mbti.sqlite
+Environment=MBTI_BACKUP_DIR=/var/lib/mbti-game/backups
+Environment=MBTI_BACKUP_KEEP=30
+# HTTPS 站点，cookie 必须带 Secure
+Environment=MBTI_SECURE_COOKIE=true
+
+# ---- 沙箱加固 ----
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+# 代码目录只读，唯一可写的是数据目录
+ReadWritePaths=/var/lib/mbti-game
+
+# 内存护栏：这台机器共 2G，进程跑飞时先杀它而不是拖垮整机
+MemoryMax=768M
+# 单进程足够，限制句柄数防泄漏
+LimitNOFILE=65535
+
+# 日志进 journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mbti-game
+
+[Install]
+WantedBy=multi-user.target

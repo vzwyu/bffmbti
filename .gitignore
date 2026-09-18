@@ -1,0 +1,21 @@
+# ---- 构建产物（可再生，不入库） ----
+# _build/payload.json 会把整个源码再复制一份，入库只会让仓库膨胀且分不清哪份是权威
+_build/
+
+# ---- 依赖 ----
+node_modules/
+
+# ---- 一次性探针文件 ----
+_dev/out/probe.txt
+
+# ---- 运行时数据（真实用户数据，绝不入库） ----
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+server/data/
+
+# ---- 系统 / 编辑器 ----
+.DS_Store
+Thumbs.db
+*.swp
+*~

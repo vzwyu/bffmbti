@@ -1,0 +1,15 @@
+{
+  "name": "mbti-game-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "「在朋友眼中，你的MBTI是什么？」后端 —— 零第三方依赖，仅使用 Node 内置模块",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node test/run-all.js"
+  },
+  "dependencies": {}
+}

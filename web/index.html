@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>在朋友眼中，你的MBTI是什么？</title>
+<meta name="description" content="选一个你的人格类型，生成专属链接，看看朋友们眼中的你是什么样。">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14181F" media="(prefers-color-scheme: dark)">
+<meta name="robots" content="noindex">
+<!--
+  注意：资源必须用「绝对路径」（以 /games/mbti/ 开头）。
+  用相对路径 js/xxx.js 时，页面若处在 /games/mbti/s/<token> 这类深链接下，
+  浏览器会把基准解析成 /games/mbti/s/，请求 /games/mbti/s/js/xxx.js →
+  被 nginx 的 SPA 回退规则返回成 HTML → 浏览器拒绝执行 → 全局对象全空 →
+  弹出「页面未能正确加载」。分享链接正是这种深链接，所以必须绝对路径。
+-->
+<link rel="stylesheet" href="/games/mbti/css/design-system.css">
+<!-- 零请求图标：避免浏览器去要 /favicon.ico 拿 404（每次访问都白跑一趟） -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230143B0'/%3E%3Ctext x='16' y='23' font-size='19' font-weight='700' text-anchor='middle' fill='%23ffffff' font-family='sans-serif'%3EM%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<header class="topbar" id="topbar"></header>
+
+<main id="app">
+  <div class="page" style="padding-top:var(--sp-8)">
+    <div class="card" style="max-width:460px;margin:0 auto">
+      <div class="skeleton" style="height:24px;width:60%;margin-bottom:var(--sp-4)"></div>
+      <div class="skeleton" style="height:16px;width:90%;margin-bottom:var(--sp-2)"></div>
+      <div class="skeleton" style="height:16px;width:75%"></div>
+    </div>
+  </div>
+</main>
+
+<noscript>
+  <div class="page" style="padding-top:var(--sp-6)">
+    <div class="alert alert--warn">
+      <span class="alert__icon">!</span>
+      <div>这个页面需要 JavaScript 才能运行，请在浏览器设置中开启后刷新。</div>
+    </div>
+  </div>
+</noscript>
+
+<div id="bootError" hidden>
+  <div class="page" style="padding-top:var(--sp-5)">
+    <div class="alert alert--error">
+      <span class="alert__icon">!</span>
+      <div>
+        <b>页面未能正确加载。</b>请刷新重试；如果反复出现，可能是网络或缓存问题。
+        <div id="bootErrorDetail" hidden style="margin-top:10px;font-size:12px;line-height:1.6;word-break:break-all;opacity:.85"></div>
+        <div style="margin-top:12px">
+          <button type="button" id="bootRetryBtn" style="padding:8px 16px;border:1px solid currentColor;border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:13px;cursor:pointer">重新加载</button>
+          <button type="button" id="bootHardBtn" style="margin-left:8px;padding:8px 16px;border:1px solid currentColor;border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:13px;cursor:pointer">强制从服务器重取</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 挂载点与接口前缀，与 nginx location 保持一致
+  window.__MBTI_BASE__ = '/games/mbti/api';
+  window.__MBTI_BASE_PATH__ = '/games/mbti';
+</script>
+
+<!--
+  依赖顺序：基础数据 → 网络层 → UI 工具 → 场景问卷 → 各视图 → 路由外壳。路径必须绝对。
+
+  ⚠️ 这里保留 8 个独立 <script> 只是为了本地按文件调试；
+  **构建期（_dev/build-payload.js）会把它们合并成单个 bundle.js**，
+  真正上线的是合并版 —— 页面只需 2 个请求（bundle.js + design-system.css）。
+  2026-09-18 手机端反复报「页面未能正确加载」，根因就是 9 个请求里
+  任意一个没到位就缺全局对象、整页报废。合并后从根上消灭这一类失败。
+  构建脚本会断言产物里只剩 1 个外链脚本标签，合并失效直接让构建失败。
+  （注：本注释里不要写尖括号形式的 script 标签，会把按标签切分的工具带偏。）
+-->
+<script src="/games/mbti/js/mbti-types.js"></script>
+<script src="/games/mbti/js/api.js"></script>
+<script src="/games/mbti/js/ui.js"></script>
+<script src="/games/mbti/js/quiz.js"></script>
+<script src="/games/mbti/js/views/home.js"></script>
+<script src="/games/mbti/js/views/login.js"></script>
+<script src="/games/mbti/js/views/visitor.js"></script>
+<script src="/games/mbti/js/views/profile.js"></script>
+<script src="/games/mbti/js/app.js"></script>
+
+<script>
+  // 启动兜底：缺依赖时先尝试自愈，自愈不成再给出可诊断的报错。
+  // 为什么不只报错：手机上失败往往只是一两个文件没到位，重新拉一次就好，
+  // 直接把用户挡在门外是最差的选择。
+  (function () {
+    var REQUIRED = ['MBTI', 'API', 'UI', 'Views', 'App'];
+    var failedUrls = [];
+    var healed = false;
+
+    function missing() {
+      return REQUIRED.filter(function (k) { return typeof window[k] === 'undefined'; });
+    }
+
+    // capture 阶段才能拿到 <script>/<link> 的资源加载失败事件
+    window.addEventListener('error', function (e) {
+      var t = e && e.target;
+      if (t && t.tagName === 'SCRIPT') failedUrls.push(t.src || '(inline)');
+      if (t && t.tagName === 'LINK') failedUrls.push(t.href || '(link)');
+    }, true);
+
+    function scriptList() {
+      return Array.prototype.map.call(document.querySelectorAll('script[src]'), function (s) {
+        return s.getAttribute('src');
+      });
+    }
+
+    // 按原顺序逐个重新注入（顺序不能乱：视图文件在 IIFE 顶部就抓住了 UI 引用）
+    function reinject(list, done) {
+      if (!list.length) return done();
+      var src = list.shift();
+      var url = src + (src.indexOf('?') >= 0 ? '&' : '?') + 'r=' + Date.now();
+      var el = document.createElement('script');
+      el.src = url;
+      el.onload = function () { reinject(list, done); };
+      el.onerror = function () { failedUrls.push(url); reinject(list, done); };
+      document.head.appendChild(el);
+    }
+
+    function onHealed() {
+      var box = document.getElementById('bootError');
+      var detail = document.getElementById('bootErrorDetail');
+      if (box) box.hidden = true;
+      if (detail) detail.hidden = true;
+      // 不主动调 App.render()：自愈时重注入的 app.js 自己会 boot 并渲染；
+      // 这里再调一次会重复渲染，而 App 尚未就绪时强行调用还会抛错。
+    }
+
+    function diagnose(miss) {
+      var box = document.getElementById('bootError');
+      var detail = document.getElementById('bootErrorDetail');
+      if (detail) {
+        var lines = ['缺少模块：' + miss.join(', ')];
+        if (failedUrls.length) lines.push('加载失败：' + failedUrls.join('  '));
+        lines.push('浏览器：' + navigator.userAgent);
+        lines.push('地址：' + location.href);
+        detail.textContent = lines.join('\n');
+        detail.hidden = false;
+      }
+      if (box) box.hidden = false;
+    }
+
+    function check() {
+      var miss = missing();
+      if (!miss.length) return;
+
+      if (healed) { diagnose(miss); return; }   // 只自愈一轮，避免死循环
+      healed = true;
+
+      var list = scriptList();
+      if (!list.length) { diagnose(miss); return; }
+      reinject(list, function () {
+        var still = missing();
+        if (still.length) diagnose(still);
+        else onHealed();
+      });
+    }
+
+    var retryBtn = document.getElementById('bootRetryBtn');
+    if (retryBtn) retryBtn.addEventListener('click', function () { location.reload(); });
+    var hardBtn = document.getElementById('bootHardBtn');
+    if (hardBtn) {
+      hardBtn.addEventListener('click', function () {
+        // 带随机参数整页重取，绕开缓存
+        location.replace(location.pathname + '?r=' + Date.now());
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', check);
+    } else {
+      check();
+    }
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>设计预览 · 在朋友眼中，你的MBTI是什么？</title>
+<link rel="stylesheet" href="css/design-system.css">
+<style>
+  .swatch { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: var(--sp-3); }
+  .swatch__item { border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--c-border-soft); }
+  .swatch__chip { height: 56px; }
+  .swatch__meta { padding: var(--sp-2) var(--sp-3); font-size: var(--fs-xs); background: var(--c-surface); color: var(--c-text-muted); }
+  .swatch__meta b { display: block; color: var(--c-text); font-size: var(--fs-sm); }
+  .swatch__meta code { font-family: var(--font-mono); }
+  .demo-label { font-size: var(--fs-xs); color: var(--c-text-muted); text-transform: uppercase;
+    letter-spacing: 0.08em; font-weight: 700; margin: var(--sp-5) 0 var(--sp-3); }
+  .demo-label:first-child { margin-top: 0; }
+  .demo-block { padding: var(--sp-5); background: var(--c-bg-alt); border-radius: var(--r-lg); }
+  .hero-band { background: var(--c-bg-alt); border-bottom: 1px solid var(--c-border-soft); padding: var(--sp-6) 0; }
+  .screen-cap { font-size: var(--fs-xs); color: var(--c-text-muted); margin: calc(-1 * var(--sp-3)) 0 var(--sp-4); }
+  .result-triple { display: grid; gap: var(--sp-3); }
+  @media (min-width: 860px) { .result-triple { grid-template-columns: repeat(3, 1fr); } }
+  .result-card {
+    display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-5) var(--sp-4); text-align: center;
+    border: 1px solid var(--c-border-soft); border-radius: var(--r-lg);
+    background: var(--c-surface); box-shadow: var(--sh-sm);
+  }
+  .result-card--self { border-color: var(--c-border); background: var(--c-bg-alt); }
+  .result-card--maj { border-color: var(--g, var(--c-sj)); }
+  .result-card__who { font-size: var(--fs-xs); color: var(--c-text-muted); }
+  .result-card__code { font-size: var(--fs-h1); font-weight: 800; color: var(--g, var(--c-sj)); line-height: 1.1; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__inner">
+    <div class="topbar__brand">在朋友眼中，你的MBTI是什么？</div>
+    <div class="topbar__actions"><span class="btn btn--quiet btn--sm">设计预览</span></div>
+  </div>
+</header>
+
+<div class="hero-band">
+  <div class="page">
+    <h1>设计系统预览</h1>
+    <p style="max-width:660px;margin-top:var(--sp-3)">
+      前端视觉基线。16 型形象暂用<b>主题色圆形占位</b>，正式版替换为 16 张 AI 生成的原创形象图。
+      缩小浏览器窗口可查看手机端 4×4 排布。
+    </p>
+    <p style="max-width:660px;font-size:var(--fs-sm);color:var(--c-text-muted)">
+      <b>夜间模式：</b>跟随系统设置，没有手动开关。把系统或浏览器切到深色，本页会立即整体切换；
+      四组主题色在深色下会自动提亮以保证对比度。
+    </p>
+  </div>
+</div>
+
+<div id="bootError" hidden>
+  <div class="page" style="padding-top:var(--sp-5)">
+    <div class="alert alert--error">
+      <span class="alert__icon">!</span>
+      <div><b>基础数据未能加载</b>，页面下方的动态内容不会显示。请确认 <code>js/mbti-types.js</code> 可访问。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 一、主题色 ══════════ -->
+<section class="section page">
+  <h2>一、主题色</h2>
+  <p style="margin-top:var(--sp-2)">四大人格组，色值逐个核实自 16personalities 官方 styles-core.css。</p>
+  <div class="swatch" style="margin-top:var(--sp-4)">
+    <div class="swatch__item" data-group="NT">
+      <div class="swatch__chip" style="background:var(--c-nt)"></div>
+      <div class="swatch__meta"><b>分析家 NT</b>Analysts · <code>#88619A</code></div>
+    </div>
+    <div class="swatch__item" data-group="NF">
+      <div class="swatch__chip" style="background:var(--c-nf)"></div>
+      <div class="swatch__meta"><b>外交家 NF</b>Diplomats · <code>#33A474</code></div>
+    </div>
+    <div class="swatch__item" data-group="SJ">
+      <div class="swatch__chip" style="background:var(--c-sj)"></div>
+      <div class="swatch__meta"><b>守护者 SJ</b>Sentinels · <code>#4298B4</code></div>
+    </div>
+    <div class="swatch__item" data-group="SP">
+      <div class="swatch__chip" style="background:var(--c-sp)"></div>
+      <div class="swatch__meta"><b>探险家 SP</b>Explorers · <code>#E4AE3A</code></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 二、16 型网格 ══════════ -->
+<section class="section page" style="padding-top:0">
+  <h2>二、16 型选择网格（4×4）</h2>
+  <p style="margin-top:var(--sp-2)">
+    点任意卡片查看选中态。悬停有上浮与主题色描边。桌面端每格约 168px 高，
+    手机端自动压缩到 108px，触摸目标仍不小于 44px。
+  </p>
+  <div class="types-grid" id="grid" style="margin-top:var(--sp-5)"></div>
+</section>
+
+<!-- ══════════ 三、注册界面 ══════════ -->
+<section class="section page" style="padding-top:0">
+  <h2>三、注册界面（首屏弹窗）</h2>
+  <p class="screen-cap">进入页面后弹出。称呼必填，账号与密码用于换设备后登录查看结果。</p>
+  <div style="max-width:var(--w-form)">
+    <div class="card card--pad-lg">
+      <h3 class="card__title">先认识一下</h3>
+      <p style="font-size:var(--fs-sm);color:var(--c-text-muted);margin-bottom:var(--sp-5)">
+        填写后即可创建你自己的测试页，并把它分享给朋友。
+      </p>
+
+      <div class="field">
+        <label class="field__label" for="rg-name">我该如何称呼您？<span class="req">*</span></label>
+        <input class="input" id="rg-name" placeholder="支持 emoji 和特殊符号" autocomplete="nickname">
+        <div class="field__hint">最长 32 个汉字或 64 个英文字符</div>
+        <div class="field__error">请填写称呼</div>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="rg-acc">邮箱 / 手机号<span class="req">*</span></label>
+        <input class="input" id="rg-acc" placeholder="用于日后登录" autocomplete="username">
+        <div class="field__hint">换设备登录时用它</div>
+        <div class="field__error">请填写邮箱或手机号</div>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="rg-pw">4 位数字密码<span class="req">*</span></label>
+        <input class="input input--pin" id="rg-pw" inputmode="numeric" maxlength="4"
+               placeholder="0000" autocomplete="new-password">
+        <div class="field__hint">请勿与银行卡密码一致</div>
+        <div class="field__error">请设置 4 位数字密码</div>
+      </div>
+
+      <div class="alert alert--warn" style="margin-top:var(--sp-5)">
+        <span class="alert__icon">!</span>
+        <div>我们买不起短信验证／邮箱验证服务，因此请<b>务必妥善保存登录账号和密码</b>，否则将无法找回。</div>
+      </div>
+
+      <p style="font-size:var(--fs-xs);color:var(--c-text-muted);margin-top:var(--sp-4)">
+        收集这些信息仅用于让你日后登录和找回自己的测试结果，我们不会使用、也不会主动泄露你的任何个人信息。
+      </p>
+
+      <button class="btn btn--block btn--lg" style="margin-top:var(--sp-5)">创建并开始选择</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 四、个人主页 ══════════ -->
+<section class="section page" style="padding-top:0">
+  <h2>四、个人主页</h2>
+  <p class="screen-cap">
+    称呼可改，性别<b>选填、不填也行</b>（只给「男 / 女 / 暂不填写」，不设「其他」），
+    账号只读，MBTI 需输密码且只允许改一次。
+  </p>
+  <div class="stack" style="max-width:var(--w-narrow)">
+
+    <div class="card card--pad-lg">
+      <h3 class="card__title" style="margin-bottom:var(--sp-4)">基本资料</h3>
+
+      <div class="field">
+        <label class="field__label" for="pf-name">称呼</label>
+        <input class="input" id="pf-name" value="Vincent 🌟">
+        <div class="field__hint">最长 32 个汉字或 64 个英文字符</div>
+      </div>
+
+      <div class="field">
+        <span class="field__label">性别（选填）</span>
+        <div class="segmented" style="max-width:340px">
+          <button class="segmented__opt" aria-pressed="false">男</button>
+          <button class="segmented__opt" aria-pressed="true">女</button>
+          <button class="segmented__opt" aria-pressed="false">暂不填写</button>
+        </div>
+        <div class="field__hint">不填不影响任何功能</div>
+      </div>
+
+      <div class="field">
+        <span class="field__label">登录账号</span>
+        <input class="input" value="vin****@qq.com" readonly>
+        <div class="field__hint">登录账号不可修改</div>
+      </div>
+    </div>
+
+    <div class="card card--pad-lg">
+      <h3 class="card__title">我的人格类型</h3>
+      <div class="row row--between" style="margin-top:var(--sp-3)">
+        <div class="row" data-group="SP" style="gap:var(--sp-4)">
+          <div class="mbti-hero__avatar" style="width:64px;height:64px">
+            <span style="color:var(--g);font-weight:800;font-size:20px">IS</span>
+          </div>
+          <div>
+            <div style="font-size:var(--fs-h2);font-weight:800;color:var(--g)">ISFP</div>
+            <div style="color:var(--c-text);font-weight:600">冒险家</div>
+            <div style="font-size:var(--fs-xs);color:var(--c-text-muted)">Adventurer</div>
+          </div>
+        </div>
+        <button class="btn btn--ghost btn--sm">修改（仅剩 1 次）</button>
+      </div>
+      <div class="alert alert--info" style="margin-top:var(--sp-4)">
+        <span class="alert__icon">i</span>
+        <div>人格类型<b>原则上只能修改一次</b>，且需要输入密码。修改后所有分享链接展示的都以新类型为准。</div>
+      </div>
+    </div>
+
+    <div class="card card--pad-lg">
+      <h3 class="card__title">修改密码</h3>
+      <p style="font-size:var(--fs-xs);color:var(--c-text-muted);margin-bottom:var(--sp-4)">
+        新密码需要输入两次，两次一致才能保存。
+      </p>
+
+      <div class="field">
+        <label class="field__label" for="pw-old">原密码</label>
+        <input class="input input--pin" id="pw-old" inputmode="numeric" maxlength="4"
+               placeholder="0000" autocomplete="current-password">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="pw-new">新密码</label>
+        <input class="input input--pin" id="pw-new" inputmode="numeric" maxlength="4"
+               placeholder="0000" autocomplete="new-password">
+      </div>
+
+      <div class="field" id="pw-confirm-field">
+        <label class="field__label" for="pw-confirm">确认新密码</label>
+        <input class="input input--pin" id="pw-confirm" inputmode="numeric" maxlength="4"
+               placeholder="0000" autocomplete="new-password">
+        <div class="field__error">两次输入的新密码不一致</div>
+      </div>
+
+      <div class="row" style="margin-top:var(--sp-5);gap:var(--sp-3)">
+        <button class="btn" id="pw-save" disabled>保存</button>
+        <span style="font-size:var(--fs-xs);color:var(--c-text-muted)" id="pw-state">
+          三格都填满且两次新密码一致后可保存
+        </span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════ 五、访客评价量表 ══════════ -->
+<section class="section page" style="padding-top:0">
+  <h2>五、访客评价量表</h2>
+  <p class="screen-cap">
+    朋友打开分享链接、填完称呼后看到的内容。四个维度各一题，左右二选，全部答完才能提交。
+  </p>
+  <div style="max-width:820px">
+    <h3 style="margin-bottom:var(--sp-4)">你认为 <span style="color:var(--c-sj)">Vincent</span> 的 MBTI 更倾向以下哪种？</h3>
+    <div class="stack" id="axes"></div>
+    <div class="row row--between" style="margin-top:var(--sp-5)">
+      <span style="font-size:var(--fs-sm);color:var(--c-text-muted)" id="axisProgress">已选 0 / 4</span>
+      <button class="btn btn--lg" id="axisSubmit" disabled>提交</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 六、结果对比 ══════════ -->
+<section class="section page" style="padding-top:0">
+  <h2>六、结果对比页（访客提交后）</h2>
+  <p class="screen-cap">三张卡片并列：你的判断、他的自我认知、多数人的印象。</p>
+  <div class="result-triple" id="resultTriple" style="max-width:900px"></div>
+</section>
+
+<!-- ══════════ 七、偏差图表 ══════════ -->
+<section class="section page" style="padding-top:0">
+  <h2>七、偏差图表：自我认知 vs 大多数人</h2>
+  <p style="screen-cap">
+    每个维度一条按票数比例分段的票型条，多数侧加深；下方标出「你」和「多数人」各自站哪一侧。
+    示例数据：12 位朋友评价，2 个维度上朋友的印象与他自己的认知不同。
+  </p>
+  <div class="card card--pad-lg" style="max-width:860px">
+    <div class="row row--between row--wrap" style="margin-bottom:var(--sp-5);gap:var(--sp-3)">
+      <div>
+        <div style="font-weight:700;color:var(--c-text);font-size:var(--fs-h3)">共 12 位朋友评价</div>
+        <div style="font-size:var(--fs-xs);color:var(--c-text-muted);margin-top:2px">
+          自我认知 <b style="color:var(--c-text)">INTP</b> ·
+          大多数人认为 <b style="color:var(--c-warn)">INFJ</b> ·
+          <span style="color:var(--c-danger)">2 个维度存在偏差</span>
+        </div>
+      </div>
+      <button class="btn btn--ghost btn--sm">查看评价明细</button>
+    </div>
+    <div class="dvx" id="dvx"></div>
+    <div class="dvx-legend" style="margin-top:var(--sp-6)">
+      <span><i class="dvx-legend__dot dot--win"></i>多数人站这一侧</span>
+      <span><i class="dvx-legend__dot dot--self"></i>你的自我认知</span>
+      <span><i class="dvx-legend__dot dot--maj"></i>大多数人的印象</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 八、评价明细 ══════════ -->
+<section class="section page" style="padding-top:0;padding-bottom:var(--sp-8)">
+  <h2>八、评价明细标签卡</h2>
+  <p class="screen-cap">点「查看评价明细」后展开，最新在前，一条一个标签卡。</p>
+  <div style="max-width:820px">
+    <div class="row row--between" style="margin-bottom:var(--sp-4)">
+      <span style="font-weight:600;color:var(--c-text)">共 12 条评价</span>
+      <span style="font-size:var(--fs-xs);color:var(--c-text-muted)">按时间倒序</span>
+    </div>
+    <div class="vote-list" id="votes"></div>
+    <div class="center" style="margin-top:var(--sp-5)">
+      <button class="btn btn--ghost">加载更多</button>
+    </div>
+  </div>
+</section>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="js/mbti-types.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* 防御：基础数据没加载成功就直接提示，而不是静默空白 */
+  if (typeof MBTI === 'undefined') {
+    document.getElementById('bootError').hidden = false;
+    return;
+  }
+
+  /* ---------- 二、16 型网格 ---------- */
+  var grid = document.getElementById('grid');
+  MBTI.TYPES.forEach(function (t) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'type-card';
+    b.setAttribute('data-group', t.group);
+    b.setAttribute('aria-pressed', 'false');
+    b.setAttribute('aria-label', t.code + ' ' + t.cn + ' ' + t.en + '，' + t.tagline);
+
+    var ck = document.createElement('span');
+    ck.className = 'type-card__check'; ck.textContent = '✓'; ck.setAttribute('aria-hidden', 'true');
+
+    var av = document.createElement('div');
+    av.className = 'type-card__avatar type-card__avatar--placeholder';
+    av.textContent = t.code.slice(0, 2);
+
+    var code = document.createElement('div');
+    code.className = 'type-card__code'; code.textContent = t.code;
+
+    var cn = document.createElement('div');
+    cn.className = 'type-card__cn'; cn.textContent = t.cn;
+
+    var en = document.createElement('div');
+    en.className = 'type-card__en'; en.textContent = t.en;
+
+    [ck, av, code, cn, en].forEach(function (n) { b.appendChild(n); });
+
+    b.addEventListener('click', function () {
+      var on = b.getAttribute('aria-pressed') === 'true';
+      Array.prototype.forEach.call(grid.children, function (o) {
+        o.setAttribute('aria-pressed', 'false');
+      });
+      b.setAttribute('aria-pressed', on ? 'false' : 'true');
+      if (!on) toast('已选择 ' + t.code + ' · ' + t.cn + '（' + t.en + '）');
+    });
+    grid.appendChild(b);
+  });
+
+  /* ---------- 五、四轴量表 ---------- */
+  var axesBox = document.getElementById('axes');
+  var axisPicked = {};
+
+  MBTI.AXES.forEach(function (ax) {
+    var wrap = document.createElement('div');
+    wrap.className = 'axis';
+
+    var head = document.createElement('div');
+    head.className = 'axis__head';
+    head.textContent = ax.leftCn + ' 还是 ' + ax.rightCn + ' ？';
+
+    var picks = document.createElement('div');
+    picks.className = 'axis__picks';
+
+    [
+      { v: ax.left, cn: ax.leftCn, desc: ax.leftDesc },
+      { v: ax.right, cn: ax.rightCn, desc: ax.rightDesc }
+    ].forEach(function (o) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'axis__opt';
+      btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-label', o.cn + ' ' + o.v);
+
+      var L = document.createElement('span');
+      L.className = 'axis__letter'; L.textContent = o.v;
+      var T = document.createElement('span');
+      T.className = 'axis__label'; T.textContent = o.cn;
+      var D = document.createElement('span');
+      D.className = 'axis__desc'; D.textContent = o.desc;
+
+      btn.appendChild(L); btn.appendChild(T); btn.appendChild(D);
+
+      btn.addEventListener('click', function () {
+        Array.prototype.forEach.call(picks.children, function (s) {
+          s.setAttribute('aria-pressed', 'false');
+        });
+        btn.setAttribute('aria-pressed', 'true');
+        axisPicked[ax.key] = o.v;
+        head.textContent = '已选：' + o.cn + '（' + o.v + '）';
+        refreshAxisProgress();
+      });
+      picks.appendChild(btn);
+    });
+
+    wrap.appendChild(head);
+    wrap.appendChild(picks);
+    axesBox.appendChild(wrap);
+  });
+
+  function refreshAxisProgress() {
+    var n = Object.keys(axisPicked).length;
+    document.getElementById('axisProgress').textContent = '已选 ' + n + ' / 4';
+    document.getElementById('axisSubmit').disabled = n < 4;
+  }
+
+  document.getElementById('axisSubmit').addEventListener('click', function () {
+    var code = MBTI.buildCode(axisPicked);
+    if (!code) return;
+    var t = MBTI.get(code);
+    toast('已提交：你认为 Vincent 是 ' + code + ' · ' + t.cn, 'success');
+  });
+
+  /* ---------- 六、结果三卡 ---------- */
+  var TRIPLE = [
+    { who: '你认为', code: 'ENFJ', cls: '' },
+    { who: 'Vincent 认为自己是', code: 'INTP', cls: 'result-card--self' },
+    { who: '大多数人认为', code: 'INFJ', cls: 'result-card--maj' }
+  ];
+  var tripleBox = document.getElementById('resultTriple');
+  TRIPLE.forEach(function (r) {
+    var t = MBTI.get(r.code);
+    var card = document.createElement('div');
+    card.className = 'result-card ' + r.cls;
+    card.setAttribute('data-group', t.group);
+
+    var who = document.createElement('div');
+    who.className = 'result-card__who'; who.textContent = r.who;
+
+    var av = document.createElement('div');
+    av.className = 'type-card__avatar type-card__avatar--placeholder';
+    av.style.cssText = 'width:72px;height:72px;font-size:20px';
+    av.textContent = r.code.slice(0, 2);
+
+    var code = document.createElement('div');
+    code.className = 'result-card__code'; code.textContent = r.code;
+
+    var cn = document.createElement('div');
+    cn.style.cssText = 'font-weight:600;color:var(--c-text)';
+    cn.textContent = t.cn;
+
+    var en = document.createElement('div');
+    en.style.cssText = 'font-size:var(--fs-xs);color:var(--c-text-muted)';
+    en.textContent = t.en;
+
+    [who, av, code, cn, en].forEach(function (n) { card.appendChild(n); });
+    tripleBox.appendChild(card);
+  });
+
+  /* ---------- 七、偏差图（真实示例数据） ---------- */
+  // 12 票的逐轴分布。self 为本人自我认知，majority 为按轴众数。
+  var SELF = 'INTP';
+  var DVX = [
+    { idx: 0, key: 'IE', title: '内向 I ／ 外向 E', left: 'I', right: 'E',
+      leftCn: '内向', rightCn: '外向', leftN: 7, rightN: 5 },
+    { idx: 1, key: 'NS', title: '直觉 N ／ 实感 S', left: 'N', right: 'S',
+      leftCn: '直觉', rightCn: '实感', leftN: 8, rightN: 4 },
+    { idx: 2, key: 'TF', title: '思考 T ／ 情感 F', left: 'T', right: 'F',
+      leftCn: '思考', rightCn: '情感', leftN: 5, rightN: 7 },
+    { idx: 3, key: 'PJ', title: '感知 P ／ 判断 J', left: 'P', right: 'J',
+      leftCn: '感知', rightCn: '判断', leftN: 5, rightN: 7 }
+  ];
+
+  var dvxBox = document.getElementById('dvx');
+  var majParts = [];
+
+  DVX.forEach(function (d) {
+    var total = d.leftN + d.rightN;
+    var selfV = SELF.charAt(d.idx);
+    // 多数侧：票多者胜；平票回落到本人自我认知
+    var majV = d.leftN > d.rightN ? d.left : (d.rightN > d.leftN ? d.right : selfV);
+    var tie = d.leftN === d.rightN;
+    var diff = selfV !== majV;
+    majParts.push(majV);
+
+    var box = document.createElement('div');
+
+    /* 标题行 + 状态徽标 */
+    var head = document.createElement('div');
+    head.className = 'dvx__head';
+    var title = document.createElement('span');
+    title.className = 'dvx__title'; title.textContent = d.title;
+    var status = document.createElement('span');
+    status.className = 'dvx__status ' + (tie ? 'dvx__status--tie'
+      : (diff ? 'dvx__status--diff' : 'dvx__status--same'));
+    status.textContent = tie ? '票数持平'
+      : (diff ? '存在偏差' : '认知一致');
+    head.appendChild(title); head.appendChild(status);
+
+    /* 票型条 */
+    var bar = document.createElement('div');
+    bar.className = 'dvx__bar';
+
+    [['left', d.left, d.leftCn, d.leftN], ['right', d.right, d.rightCn, d.rightN]]
+      .forEach(function (s) {
+        var side = s[0], letter = s[1], cn = s[2], n = s[3];
+        var seg = document.createElement('div');
+        seg.className = 'dvx__seg dvx__seg--' + side + (majV === letter ? ' dvx__seg--win' : '');
+        seg.style.flexGrow = Math.max(n, 1);
+        seg.style.flexBasis = '0';
+        if (n === 0) seg.style.minWidth = '44px';
+
+        var lt = document.createElement('span');
+        lt.className = 'dvx__letter'; lt.textContent = letter;
+        var ct = document.createElement('span');
+        ct.className = 'dvx__count';
+        ct.innerHTML = '<b>' + n + '</b> 人 · ' + cn;
+
+        seg.appendChild(lt); seg.appendChild(ct);
+        bar.appendChild(seg);
+      });
+
+    /* 归属行：谁站哪侧 */
+    var picks = document.createElement('div');
+    picks.className = 'dvx__picks';
+
+    [['left', d.left], ['right', d.right]].forEach(function (s) {
+      var side = s[0], letter = s[1];
+      var cell = document.createElement('div');
+      cell.className = 'dvx__side' + (side === 'right' ? ' dvx__side--right' : '');
+
+      if (selfV === letter) {
+        var a = document.createElement('span');
+        a.className = 'dvx__tag dvx__tag--self';
+        a.textContent = '你：' + letter;
+        cell.appendChild(a);
+      }
+      if (majV === letter) {
+        var b = document.createElement('span');
+        b.className = 'dvx__tag dvx__tag--maj';
+        b.textContent = '多数人：' + letter;
+        cell.appendChild(b);
+      }
+      if (!cell.children.length) {
+        var none = document.createElement('span');
+        none.className = 'dvx__tag dvx__tag--none';
+        none.textContent = '—';
+        cell.appendChild(none);
+      }
+      picks.appendChild(cell);
+    });
+
+    /* 明细文字 */
+    var note = document.createElement('div');
+    note.className = 'dvx__note';
+    note.textContent = total + ' 人中，' + d.leftN + ' 人认为你是 ' + d.leftCn + '（' + d.left + '），'
+      + d.rightN + ' 人认为是 ' + d.rightCn + '（' + d.right + '）。'
+      + (tie ? '票数持平，按你的自我认知取 ' + majV + '。'
+             : (diff ? '多数人认为是 ' + majV + '，与你的自我认知 ' + selfV + ' 不同。'
+                     : '多数人认为是 ' + majV + '，与你的自我认知一致。'));
+
+    box.appendChild(head); box.appendChild(bar); box.appendChild(picks); box.appendChild(note);
+    dvxBox.appendChild(box);
+  });
+
+  /* 图注补一行汇总 */
+  var majCode = majParts.join('');
+  if (MBTI.isValidCode(majCode)) {
+    var t = MBTI.get(majCode);
+    document.querySelector('.dvx').insertAdjacentHTML('afterend',
+      '<div class="alert alert--info" style="margin-top:var(--sp-5)">'
+      + '<span class="alert__icon">i</span><div>把四个维度的多数拼起来，大多数人认为你是 '
+      + '<b>' + majCode + ' · ' + t.cn + '</b>（' + t.en + '）。</div></div>');
+  }
+
+  /* ---------- 八、评价明细 ---------- */
+  var SAMPLE = [
+    { n: '小林', c: 'ENFJ', h: 2 },
+    { n: '阿哲', c: 'ENFP', h: 5 },
+    { n: '🦊 狐狸先生', c: 'INFJ', h: 11 },
+    { n: '匿名朋友', c: 'ENTP', h: 20 },
+    { n: '老周', c: 'ENFJ', h: 27 },
+    { n: 'Momo🌈', c: 'INFP', h: 33 },
+    { n: '陈工', c: 'INTJ', h: 41 },
+    { n: '小李', c: 'ENFJ', h: 50 },
+    { n: '不願透露姓名的鄰座', c: 'ISFP', h: 62 },
+    { n: '老王', c: 'ENFJ', h: 74 },
+    { n: '🎧 Ann', c: 'ENTJ', h: 88 },
+    { n: '同事甲', c: 'INFJ', h: 96 }
+  ];
+
+  var vbox = document.getElementById('votes');
+  SAMPLE.forEach(function (s) {
+    var t = MBTI.get(s.c);
+    var item = document.createElement('div');
+    item.className = 'vote-item';
+    item.setAttribute('data-group', t.group);
+
+    var av = document.createElement('div');
+    av.className = 'vote-item__avatar';
+    var ph = document.createElement('span');
+    ph.style.cssText = 'color:var(--g);font-weight:800;font-size:13px';
+    ph.textContent = s.c.slice(0, 2);
+    av.appendChild(ph);
+
+    var body = document.createElement('div');
+    body.className = 'vote-item__body';
+    var nm = document.createElement('div');
+    nm.className = 'vote-item__name'; nm.textContent = s.n;
+    var mt = document.createElement('div');
+    mt.className = 'vote-item__meta';
+    mt.textContent = '认为你是 ' + t.cn + '（' + t.en + '） · ' + fmtAgo(s.h);
+    body.appendChild(nm); body.appendChild(mt);
+
+    var cd = document.createElement('div');
+    cd.className = 'vote-item__code'; cd.textContent = s.c;
+
+    item.appendChild(av); item.appendChild(body); item.appendChild(cd);
+    vbox.appendChild(item);
+  });
+
+  function fmtAgo(h) {
+    var d = new Date(Date.now() - h * 3600 * 1000);
+    var p = function (x) { return String(x).padStart(2, '0'); };
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  /* ---------- 四、修改密码：新密码必须输两次且一致 ---------- */
+  (function initPasswordForm() {
+    var oldPw = document.getElementById('pw-old');
+    var newPw = document.getElementById('pw-new');
+    var cfmPw = document.getElementById('pw-confirm');
+    var cfmField = document.getElementById('pw-confirm-field');
+    var saveBtn = document.getElementById('pw-save');
+    var stateEl = document.getElementById('pw-state');
+    if (!saveBtn) return;
+
+    var isPin = function (v) { return /^\d{4}$/.test(v); };
+
+    function refresh() {
+      var mismatch = isPin(newPw.value) && isPin(cfmPw.value) && newPw.value !== cfmPw.value;
+      cfmField.classList.toggle('is-invalid', mismatch);
+      cfmPw.setAttribute('aria-invalid', mismatch ? 'true' : 'false');
+      cfmField.classList.toggle('is-ok', isPin(cfmPw.value) && newPw.value === cfmPw.value);
+
+      var ok = isPin(oldPw.value) && isPin(newPw.value) && isPin(cfmPw.value)
+        && newPw.value === cfmPw.value;
+      saveBtn.disabled = !ok;
+
+      if (ok) stateEl.textContent = '两次输入一致，可以保存';
+      else if (mismatch) stateEl.textContent = '两次输入的新密码不一致';
+      else stateEl.textContent = '三格都填满且两次新密码一致后可保存';
+      stateEl.style.color = mismatch ? 'var(--c-danger-fg)' : 'var(--c-text-muted)';
+      return ok;
+    }
+
+    // 只允许数字，最多 4 位（与后端 /^\d{4}$/ 的校验保持一致）
+    [oldPw, newPw, cfmPw].forEach(function (el) {
+      el.addEventListener('input', function () {
+        el.value = el.value.replace(/\D/g, '').slice(0, 4);
+        refresh();
+      });
+      el.addEventListener('paste', function () { setTimeout(refresh, 0); });
+    });
+
+    saveBtn.addEventListener('click', function () {
+      if (!refresh()) return;
+      toast('密码已更新（预览示例，未提交）', 'success');
+    });
+
+    refresh();
+  })();
+
+  /* ---------- 吐司 ---------- */
+  function toast(msg, kind) {
+    var wrap = document.getElementById('toastWrap');
+    var el = document.createElement('div');
+    el.className = 'toast' + (kind ? ' toast--' + kind : '');
+    el.textContent = msg;
+    wrap.appendChild(el);
+    setTimeout(function () {
+      el.classList.add('toast--out');
+      setTimeout(function () { el.remove(); }, 220);
+    }, 2600);
+  }
+})();
+</script>
+</body>
+</html>
