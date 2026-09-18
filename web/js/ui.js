@@ -332,6 +332,81 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* 分享                                                                */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * 分享文案：发给朋友时的一句话 + 链接。
+   * **只在这里定义一处** —— 首页分享页与个人主页的分享弹窗都调它，
+   * 免得两处各写一句、改一处忘一处。
+   */
+  function shareText(nickname, link) {
+    return '你觉得' + (nickname || '我') + '的MBTI是什么：' + link;
+  }
+
+  /** 复制到剪贴板。返回 Promise<boolean>，true = 成功 */
+  function copy(text) {
+    return new Promise(function (resolve) {
+      try {
+        if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () { resolve(true); },
+            function () { resolve(false); });
+        } else {
+          resolve(false);
+        }
+      } catch (e) {
+        resolve(false);
+      }
+    });
+  }
+
+  /**
+   * 分享面板：一句完整文案 + 两个复制按钮。
+   * - 「复制」复制**整句**（直接粘给朋友就能用）
+   * - 「仅复制链接」只复制 URL
+   * 复制失败时统一降级为「全选 + 提示长按手动复制」——不要在调用方各写一遍。
+   */
+  function sharePanel(opt) {
+    var link = opt.link;
+    var text = shareText(opt.nickname, link);
+
+    var input = el('input', {
+      class: 'share-box__url', type: 'text', readonly: true, value: text
+    });
+    input.addEventListener('click', function () { input.select(); });
+
+    function fallback() {
+      try { input.focus(); input.select(); } catch (e) { /* 忽略 */ }
+      toast('复制失败，长按上面的内容手动复制', 'error');
+    }
+
+    var copyAllBtn = el('button', { class: 'btn', type: 'button', text: '复制' });
+    copyAllBtn.addEventListener('click', function () {
+      copy(text).then(function (ok) {
+        if (!ok) { fallback(); return; }
+        toast('整句已复制，直接发给朋友就行', 'success');
+        if (opt.onCopied) opt.onCopied('text');
+      });
+    });
+
+    var copyLinkBtn = el('button', {
+      class: 'btn btn--ghost btn--block', type: 'button', text: '仅复制链接'
+    });
+    copyLinkBtn.addEventListener('click', function () {
+      copy(link).then(function (ok) {
+        if (!ok) { fallback(); return; }
+        toast('链接已复制', 'success');
+        if (opt.onCopied) opt.onCopied('link');
+      });
+    });
+
+    return el('div', { class: 'stack' }, [
+      el('div', { class: 'share-box' }, [input, copyAllBtn]),
+      copyLinkBtn
+    ]);
+  }
+
+  /* ------------------------------------------------------------------ */
   /* 常用区块                                                            */
   /* ------------------------------------------------------------------ */
 
@@ -410,8 +485,8 @@
         note = total + ' 人中，' + a.leftCount + ' 人认为是' + a.leftCn + '（' + a.left + '），'
           + a.rightCount + ' 人认为是' + a.rightCn + '（' + a.right + '）。';
         if (tie) note += '票数持平，按你自己的认知取 ' + a.majority + '。';
-        else if (diff) note += '多数人认为是 ' + a.majority + '，与你的自我认知 ' + a.selfChoice + ' 不同。';
-        else if (a.selfChoice) note += '多数人认为是 ' + a.majority + '，与你的自我认知一致。';
+        else if (diff) note += '多数人认为是 ' + a.majority + '，与' + selfLabel + '的自我认知 ' + a.selfChoice + ' 不同。';
+        else if (a.selfChoice) note += '多数人认为是 ' + a.majority + '，与' + selfLabel + '的自我认知一致。';
       }
 
       box.appendChild(el('div', {}, [
@@ -452,6 +527,9 @@
     persona: persona,
     empty: empty,
     alertBox: alertBox,
+    shareText: shareText,
+    sharePanel: sharePanel,
+    copy: copy,
     axisVoteBars: axisVoteBars,
     fmtTime: fmtTime
   };

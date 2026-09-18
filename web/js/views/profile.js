@@ -600,47 +600,12 @@
       }
       var link = shareLink(token);
 
-      var urlInput = UI.el('input', {
-        class: 'share-box__url',
-        type: 'text',
-        readonly: true,
-        value: link,
-        onclick: function () { this.select(); }
-      });
-
-      function manualFallback() {
-        try {
-          urlInput.focus();
-          urlInput.select();
-        } catch (e) {}
-        UI.toast('复制失败，长按输入框手动复制', 'error');
-      }
-
-      var copyBtn = UI.el('button', {
-        class: 'btn',
-        type: 'button',
-        text: '复制',
-        onclick: function () {
-          try {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(link).then(function () {
-                UI.toast('链接已复制，发给朋友吧', 'success');
-              }, function () {
-                manualFallback();
-              });
-            } else {
-              manualFallback();
-            }
-          } catch (e) {
-            manualFallback();
-          }
-        }
-      });
-
+      // 分享面板（UI.sharePanel）同时提供「复制整句」和「仅复制链接」两种，
+      // 整句文案：你觉得【我的称呼】的MBTI是什么：【链接】
       var body = UI.el('div', { class: 'stack' }, [
         UI.alertBox('info', '这个链接是固定的，改过人格类型后还是同一个链接，之前发过的不用重发。'),
-        UI.el('div', { class: 'share-box' }, [urlInput, copyBtn]),
-        UI.el('p', { class: 'muted', text: '拿不到链接时，长按上面的输入框选中再复制。' })
+        UI.sharePanel({ nickname: user.nickname, link: link }),
+        UI.el('p', { class: 'muted', text: '「复制」复制的是整句文案，直接发给朋友就行；只想发链接就点「仅复制链接」。' })
       ]);
 
       UI.modal({

@@ -344,7 +344,18 @@
     }));
 
     if (t) {
-      card.appendChild(UI.el('div', { style: { margin: 'var(--sp-3,12px) 0' } }, [UI.persona(t)]));
+      // 人格形象图。**必须显式居中**：
+      // 卡片用的是 text-align:center，但那只管行内内容；
+      // .type-card__avatar 是块级元素，在普通块容器里会贴在左侧，
+      // 于是「你认为」和「ENFP」之间看起来就是一大块空白（用户就是这么反馈的）。
+      // 外层用 flex 居中，同时把上下留白收紧。
+      card.appendChild(UI.el('div', {
+        style: {
+          display: 'flex',
+          justifyContent: 'center',
+          margin: 'var(--sp-3,12px) 0 var(--sp-2,8px)'
+        }
+      }, [UI.persona(t)]));
       card.appendChild(UI.el('div', {
         class: 'result-card__code',
         text: code,

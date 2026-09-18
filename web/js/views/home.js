@@ -197,26 +197,10 @@
     var type = user ? MBTI.get(user.mbti_self) : null;
     var url = location.origin + basePath() + '/s/' + token;
 
-    var urlInput = UI.el('input', {
-      class: 'share-box__url',
-      type: 'text',
-      readonly: true,
-      value: url
-    });
-    urlInput.addEventListener('click', function () { urlInput.select(); });
-
-    var copyBtn = UI.el('button', { class: 'btn', type: 'button', text: '复制' });
-    copyBtn.addEventListener('click', function () {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(function () {
-          UI.toast('链接已复制', 'success');
-        }).catch(function () {
-          UI.toast('复制失败，请长按选中链接手动复制', 'error');
-        });
-      } else {
-        UI.toast('复制失败，请长按选中链接手动复制', 'error');
-      }
-    });
+    // 分享面板与个人主页共用（UI.sharePanel）：
+    // 整句文案 = 你觉得【我的称呼】的MBTI是什么：【链接】，
+    // 「复制」给整句，「仅复制链接」只给 URL。
+    var shareBox = UI.sharePanel({ nickname: user ? user.nickname : '', link: url });
 
     var meBtn = UI.el('button', {
       class: 'btn btn--lg btn--block',
@@ -239,7 +223,7 @@
     var children = [
       UI.el('h1', { class: 'share-title', text: '你的专属链接已生成' }),
       UI.el('p', { class: 'share-sub', text: '把它发给朋友，看看他们眼中的你是什么样。' }),
-      UI.el('div', { class: 'share-box' }, [urlInput, copyBtn]),
+      shareBox,
       meBtn,
       reBtn
     ];

@@ -94,7 +94,11 @@ function makeDom(opts) {
   window.__MBTI_BASE__ = '/games/mbti/api';
   window.__MBTI_BASE_PATH__ = '/games/mbti';
   window.AbortController = AbortController;
-  window.navigator.clipboard = { writeText: () => Promise.resolve() };
+  // 记录剪贴板写入，供"复制/仅复制链接"两个按钮的断言核对
+  window.__copied = [];
+  window.navigator.clipboard = {
+    writeText: function (t) { window.__copied.push(String(t)); return Promise.resolve(); }
+  };
 
   window.fetch = function (input) {
     const url = String(input);
@@ -226,7 +230,30 @@ const CASES = [
     name: 'home（已有类型，应显示分享页）',
     view: 'home',
     store: { user: USER, isLoggedIn: () => true, shareToken: () => USER.token },
-    params: {}, expectSel: '.share-box__url', expectCount: 1
+    params: {}, expectSel: '.share-box__url', expectCount: 1,
+    extraChecks: (doc) => {
+      const win = doc.defaultView;
+      const link = 'http://localhost/games/mbti/s/' + USER.token;
+      const expectedText = '你觉得' + USER.nickname + '的MBTI是什么：' + link;
+      const input = doc.querySelector('.share-box__url');
+      const btns = [...doc.querySelectorAll('.share-page button')];
+      const btnCopy = btns.find((b) => b.textContent.trim() === '复制');
+      const btnLink = btns.find((b) => b.textContent.trim() === '仅复制链接');
+
+      win.__copied.length = 0;
+      if (btnCopy) btnCopy.click();
+      if (btnLink) btnLink.click();
+      const copied = win.__copied.slice();
+
+      return [
+        ['首页分享框与个人主页用同一套文案',
+          !!input && input.value === expectedText, input ? input.value : ''],
+        ['首页也有「复制」与「仅复制链接」两个按钮', !!btnCopy && !!btnLink,
+          btns.map((b) => b.textContent.trim()).join(' | ')],
+        ['首页「复制」写入整句文案', copied[0] === expectedText, JSON.stringify(copied[0])],
+        ['首页「仅复制链接」只写入链接', copied[1] === link, JSON.stringify(copied[1])]
+      ];
+    }
   },
   {
     name: 'login（纯登录表单，找回功能已关闭）',
@@ -337,7 +364,25 @@ const CASES = [
         ['计分条标签用「她：」', /她：[A-Z]/.test(t)],
         ['计分条里不再出现「你：」', !/你：/.test(t)],
         // 「你认为」是评价人自己的判断，必须保留「你」
-        ['评价人自己的卡片仍写「你认为」', /你认为/.test(t)]
+        ['评价人自己的卡片仍写「你认为」', /你认为/.test(t)],
+        ['偏差说明也改用「她」：与她/他的自我认知',
+          /与她的自我认知/.test(t) && !/与你的自我认知/.test(t)],
+        // 结果卡里的人格形象必须显式居中，否则会贴左侧、看起来像一块空白
+        ['结果卡里的人格形象外层是 flex 居中', (() => {
+          const av = doc.querySelector('.result-card .type-card__avatar');
+          const wrap = av && av.parentElement;
+          return !!wrap && /flex/.test(wrap.style.display || '') &&
+            /center/.test(wrap.style.justifyContent || '');
+        })()],
+        ['人格形象确实渲染在「who」行与类型码之间', (() => {
+          const card = doc.querySelector('.result-card');
+          if (!card) return false;
+          const kids = [...card.children];
+          const iWho = kids.findIndex((n) => n.classList.contains('result-card__who'));
+          const iCode = kids.findIndex((n) => n.classList.contains('result-card__code'));
+          const iAv = kids.findIndex((n) => !!n.querySelector('.type-card__avatar'));
+          return iWho >= 0 && iAv > iWho && iCode > iAv;
+        })()]
       ];
     }
   },
@@ -363,6 +408,21 @@ const CASES = [
       const panel = doc.querySelector('.modal__panel');
       const urlInput = doc.querySelector('.modal__panel .share-box__url');
       const panelText = panel ? panel.textContent : '';
+      const pdfBtnList = [...(panel ? panel.querySelectorAll('button') : [])];
+      const expectedLink = 'http://localhost/games/mbti/s/' + USER.token;
+      const expectedText = '你觉得' + USER.nickname + '的MBTI是什么：' + expectedLink;
+
+      const btnCopy = pdfBtnList.find((b) => b.textContent.trim() === '复制');
+      const btnLink = pdfBtnList.find((b) => b.textContent.trim() === '仅复制链接');
+
+      // 点「复制」再点「仅复制链接」，核对写进剪贴板的分别是整句与纯链接。
+      // UI.copy() 在 Promise 执行器里同步调用 writeText，所以这里同步断言就够。
+      // extraChecks 只拿到 doc，window 要用 doc.defaultView 取。
+      const win = doc.defaultView;
+      win.__copied.length = 0;
+      if (btnCopy) btnCopy.click();
+      if (btnLink) btnLink.click();
+      const copied = win.__copied.slice();
 
       return [
         ['存在「退出登录」按钮', btns.length > 0],
@@ -378,13 +438,17 @@ const CASES = [
         ['分享按钮与修改按钮并排（同一 flex 行，窄屏自动换行）', inRowWithEdit],
         ['点击分享按钮弹出弹窗', !!panel],
         ['弹窗标题为「你的专属链接」', /你的专属链接/.test(panelText)],
-        ['弹窗内含只读链接输入框', !!urlInput && urlInput.hasAttribute('readonly')],
-        ['链接指向 /s/<token>（复用注册时的固定 token，不重新生成）',
-          !!urlInput && urlInput.value.indexOf('/s/' + USER.token) > -1,
-          urlInput ? urlInput.value : ''],
-        ['链接基于当前站点 origin + BASE_PATH',
-          !!urlInput && urlInput.value.indexOf('http://localhost/games/mbti/s/') === 0,
-          urlInput ? urlInput.value : ''],
+        ['弹窗内含只读文案框', !!urlInput && urlInput.hasAttribute('readonly')],
+
+        // ---- 分享文案：你觉得【我的称呼】的MBTI是什么：【链接】----
+        ['文案框内容是「你觉得〈称呼〉的MBTI是什么：〈链接〉」',
+          !!urlInput && urlInput.value === expectedText, urlInput ? urlInput.value : ''],
+        ['文案里含固定 token 的分享链接（不重新生成）',
+          !!urlInput && urlInput.value.indexOf('/s/' + USER.token) > -1],
+        ['两个复制按钮齐全（复制 / 仅复制链接）', !!btnCopy && !!btnLink,
+          pdfBtnList.map((b) => b.textContent.trim()).join(' | ')],
+        ['「复制」写入的是整句文案', copied[0] === expectedText, JSON.stringify(copied[0])],
+        ['「仅复制链接」只写入链接', copied[1] === expectedLink, JSON.stringify(copied[1])],
         ['弹窗明确说明链接固定、之前发过的不用重发',
           /这个链接是固定的/.test(panelText)]
       ];
