@@ -8,6 +8,11 @@ node_modules/
 # ---- 一次性探针文件 ----
 _dev/out/probe.txt
 
+# ---- 本地敏感词表（真实昵称/账号/token 等，只在本机给审查脚本用） ----
+# _dev/audit-secrets.js 会读它；**这个文件本身绝不能入库**，
+# 否则等于把要防的东西换个地方公开一遍。
+_dev/sensitive-words.txt
+
 # ---- 运行时数据（真实用户数据，绝不入库） ----
 *.sqlite
 *.sqlite-wal

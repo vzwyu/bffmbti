@@ -183,7 +183,7 @@ ssh -o ConnectTimeout=12 "$SSH_HOST" \
      printf "    深链接  : "; curl -s -m 8 -o /dev/null -w "%{http_code} → %{redirect_url}\n" http://bffmbti.oictech.cn/s/demo
      printf "    HTTPS   : "; curl -s -m 8 -o /dev/null -w "%{http_code}\n" https://bffmbti.oictech.cn/ 2>/dev/null || echo "证书未就绪"
    else
-     echo "    DNS 未解析，跳过（在腾讯云加 A 记录 bffmbti → 111.229.180.118 后重跑）"
+     echo "    DNS 未解析，跳过（给 bffmbti 加一条 A 记录指向本服务器后重跑）"
    fi'
 echo -n "  nginx server_name 冲突    : "
 ssh -o ConnectTimeout=12 "$SSH_HOST" "sudo nginx -t 2>&1 | grep -c 'conflicting server name'" || true

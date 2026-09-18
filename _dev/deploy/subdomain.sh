@@ -26,6 +26,10 @@ DOMAIN=bffmbti.oictech.cn
 TARGET=https://www.oictech.cn/games/mbti
 CONF=/etc/nginx/conf.d/bffmbti-game.conf
 ACME_ROOT=/var/www/oictech
+# ⚠️ 服务器公网 IP 不写死在脚本里 —— 本仓库是 Public，
+# 服务器 IP / SSH 用户 / 部署布局这类信息不往公开库里放。
+# 需要打印出来时临时传入：SERVER_IP=1.2.3.4 bash subdomain.sh
+SERVER_IP="${SERVER_IP:-<本服务器公网IP>}"
 
 say() { printf '  %s\n' "$*"; }
 die() { printf '  ❌ %s\n' "$*" >&2; exit 1; }
@@ -44,7 +48,7 @@ for i in 1 2 3 4 5; do
 done
 if [ -z "$RESOLVED" ]; then
   say "   ⚠️  $DOMAIN 目前无法解析（本地 DNS 缓存或记录尚未生效）"
-  say "      请先在腾讯云给 $DOMAIN 加一条 A 记录 → 111.229.180.118"
+  say "      请先在腾讯云给 $DOMAIN 加一条 A 记录 → $SERVER_IP"
   say "      本次仍会先把 HTTP 段配置装好，证书申请跳过。"
   HAS_DNS=0
 else
