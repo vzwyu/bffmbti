@@ -399,6 +399,19 @@ const CASES = [
         ['结果卡带出英文名（Campaigner）', (() => {
           const en = doc.querySelector('.result-card .result-card__en');
           return !!en && en.textContent === 'Campaigner';
+        })()],
+
+        // ---- 结果页末尾的行动号召要显眼 ----
+        ['CTA 在 .visitor-cta 容器里（带分隔线，与票型条切开）',
+          doc.querySelectorAll('.visitor-cta').length === 1],
+        ['CTA 上方有一句引子', (() => {
+          const lead = doc.querySelector('.visitor-cta__lead');
+          return !!lead && lead.textContent.length > 0;
+        })()],
+        ['CTA 按钮是整行大字（btn--lg + btn--block）', (() => {
+          const b = [...doc.querySelectorAll('.visitor-cta button')]
+            .find((x) => /我也要测试/.test(x.textContent));
+          return !!b && b.classList.contains('btn--lg') && b.classList.contains('btn--block');
         })()]
       ];
     }
@@ -796,6 +809,13 @@ const CASES = [
     // 「不知道怎么选？」应当在提交键左边、同一行
     const quizBtn = [...app.querySelectorAll('button')].find((b) => /不知道怎么选/.test(b.textContent));
     ok('存在「不知道怎么选？」按钮', !!quizBtn);
+    ok('按钮文案为「不知道怎么选？点这里」',
+      !!quizBtn && quizBtn.textContent === '不知道怎么选？点这里',
+      quizBtn ? quizBtn.textContent : '');
+    ok('按钮用的是可见样式（btn--ghost，不是隐形的 btn--quiet）',
+      !!quizBtn && quizBtn.classList.contains('btn--ghost') &&
+      !quizBtn.classList.contains('btn--quiet'),
+      quizBtn ? quizBtn.className : '');
     ok('它在提交键左边（同一容器内、顺序在前）', (() => {
       if (!quizBtn) return false;
       const row = quizBtn.parentElement;

@@ -302,9 +302,11 @@
       });
     });
 
-    // 「不知道怎么选？」放在提交键左边；窄屏时两个按钮一起换到下一行仍然并排
+    // 「不知道怎么选？」放在提交键左边；窄屏时两个按钮一起换到下一行仍然并排。
+    // 用 btn--ghost 而不是 btn--quiet：后者是透明背景+透明边框，在白底上几乎看不见
+    // （「退出登录」就踩过这个坑）。这里既然要引导用户点，就要看得见。
     var quizBtn = UI.el('button', {
-      class: 'btn btn--quiet btn--sm', type: 'button', text: '不知道怎么选？'
+      class: 'btn btn--ghost btn--sm', type: 'button', text: '不知道怎么选？点这里'
     });
     quizBtn.addEventListener('click', function () {
       openQuizModal(ctx, user, token, onSubmitted);
@@ -444,7 +446,10 @@
     ]);
 
     var voterName = currentVoterName(ctx);
-    var ctaBtn = UI.el('button', { class: 'btn btn--lg', text: '我也要测试', type: 'button' });
+    // 结果页末尾的 CTA：做成整行大字按钮 + 上方一句引子，
+    // 并加一条分隔线把它和上面的票型条切开 —— 原来只是一个内联小按钮，
+    // 夹在长页面末尾很不显眼。
+    var ctaBtn = UI.el('button', { class: 'btn btn--lg btn--block', text: '我也要测试', type: 'button' });
     ctaBtn.addEventListener('click', function () {
       if (ctx.store && ctx.store.isLoggedIn && ctx.store.isLoggedIn()) {
         ctx.navigate('/me');
@@ -453,18 +458,21 @@
       }
     });
 
+    var ctaBlock = UI.el('div', { class: 'visitor-cta' }, [
+      UI.el('p', { class: 'visitor-cta__lead', text: '想让朋友也来评评你？' }),
+      ctaBtn,
+      UI.el('p', {
+        class: 'muted',
+        text: '你已经填过称呼了，注册时不用再填一次。',
+        style: { fontSize: 'var(--fs-sm,14px)', color: 'var(--fg-muted,#888)', marginTop: 'var(--sp-2,8px)' }
+      })
+    ]);
+
     return UI.el('div', { class: 'visitor-step visitor-result' }, [
       triple,
       UI.el('p', { class: 'result-sentence', text: sentence }),
       barsCard,
-      UI.el('div', { style: { textAlign: 'center', marginTop: 'var(--sp-4,16px)' } }, [
-        ctaBtn,
-        UI.el('p', {
-          class: 'muted',
-          text: '你已经填过称呼了，注册时不用再填一次。',
-          style: { fontSize: 'var(--fs-sm,14px)', color: 'var(--fg-muted,#888)', marginTop: 'var(--sp-2,8px)' }
-        })
-      ])
+      ctaBlock
     ]);
   }
 
