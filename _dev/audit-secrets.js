@@ -13,6 +13,23 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 /**
+ * ⚠️ 工具故障绝不能长得像「发现泄露」。
+ * 脚本自身抛异常时 node 默认退出码是 1，而 1 正是 CRIT 的约定码 ——
+ * push.sh 会报「发现 CRIT 级泄露，已中止推送」，让人以为仓库脏了（实际只是 git 抽风）。
+ * 这里用退出码 3 把「工具故障」和「真的发现泄露」彻底分开。
+ */
+process.on('uncaughtException', (e) => {
+  console.error('\n❌ 审查脚本自身异常，未完成扫描：' + (e && e.message));
+  console.error('   这不是「发现泄露」，是工具故障（退出码 3，与 CRIT=1 区分）。');
+  if (e && e.code === 'EBUSY' && e.syscall && String(e.syscall).startsWith('spawn')) {
+    console.error('   ⚠️ 已经重试 8 次（约 11 秒）仍 EBUSY。这是**间歇性**的 —— 实测同一台机器上');
+    console.error('      spawnSync("git") 会连续失败若干次、过一会儿又正常，与 git 和沙箱都无关。');
+    console.error('      处置：隔十几秒**直接重跑 push.sh** 即可，不要以为仓库脏了。');
+  }
+  process.exit(3);
+});
+
+/**
  * MSYS 风格路径（/c/Users/...）不能直接当 Windows 程序的 cwd 用。
  * 症状很有迷惑性：node 会报 `spawnSync git ENOENT`，看起来像找不到 git，
  * 实际是 cwd 不存在导致整个 spawn 失败（error.path 显示的是命令名）。
@@ -49,10 +66,56 @@ if (!GIT) {
   process.exit(3);
 }
 
+/**
+ * 同步睡眠（不引入异步，保证调用点写法不变）。
+ */
+function sleepSync(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch (e) { /* 极端环境不支持就退化为忙等 */ }
+}
+
+/**
+ * PortableGit 绝对路径（Windows 原生写法）。
+ * 与裸名 'git' 走**不同的解析路径**（前者直接 CreateProcess，后者要先查 PATH），
+ * 重试时交替使用，能绕开因 PATH 解析引发的偶发 EBUSY。
+ */
+const GIT_ABS = 'C:/Users/vzwyu/.workbuddy/binaries/PortableGit/versions/1.2.0/cmd/git.exe';
+
+/**
+ * 调 git。
+ *
+ * 🚨 **必须显式写 stdio，不能吃默认值。**
+ * execFileSync 默认 stdio 是 `['pipe','pipe','pipe']`，会给子进程建一个 **stdin 管道**；
+ * 在本机这套环境里，带 stdin 管道的 spawn 会稳定失败 `EBUSY`，而单管道（stdin=ignore）正常。
+ * 症状极具误导性：脚本里「探测 git 是否可用」那句用的正是 `['ignore','pipe','ignore']`，
+ * 所以**探测通过、紧接着的每一条命令都 EBUSY**，看起来像 git 抽风或仓库有问题。
+ * git 这里不需要 stdin（没有 input），用 'ignore' 既正确又绕开这个坑。
+ *
+ * 另：对 EBUSY/EAGAIN/ETXTBSY 仍保留退避重试兜底。
+ */
 function git(args, opt) {
-  return cp.execFileSync(GIT, args, Object.assign({
-    cwd: REPO, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024
-  }, opt || {}));
+  const opts = Object.assign({
+    cwd: REPO,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'pipe']
+  }, opt || {});
+  let last = null;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const bin = (attempt % 2 === 0 || !fs.existsSync(GIT_ABS)) ? GIT : GIT_ABS;
+    try {
+      return cp.execFileSync(bin, args, opts);
+    } catch (e) {
+      last = e;
+      if (e && (e.code === 'EBUSY' || e.code === 'EAGAIN' || e.code === 'ETXTBSY')) {
+        sleepSync(300 * (attempt + 1));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw last;
 }
 
 /* ---------------- 规则表 ---------------- */

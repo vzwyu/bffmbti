@@ -19,6 +19,12 @@ _dev/sensitive-words.txt
 *.sqlite-shm
 server/data/
 
+# ---- 生产库导出与统计报表（含真实昵称、账号、注册时间、投票记录） ----
+# 本仓库是 Public。这类文件一旦推上去就永久留在历史里，谁也删不干净。
+_dev/out/db-dump.json
+docs/*.xlsx
+docs/.*.ref/
+
 # ---- 系统 / 编辑器 ----
 .DS_Store
 Thumbs.db
