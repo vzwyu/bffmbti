@@ -24,7 +24,11 @@ cd "$(dirname "$0")/.." || exit 1
 [ -d .git ] || { echo "❌ 当前目录不是 git 仓库"; exit 1; }
 
 echo "════════ 1/4 本地改动 ════════"
-CHANGED=$(git status --porcelain | wc -l | tr -d ' ')
+# ⚠️ 必须 tr -cd '0-9' 而不是 tr -d ' '：
+# 这套 shim 的 wc 会输出 CRLF，`tr -d ' '` 去不掉 \r，
+# 于是 [ "3\r" -gt 0 ] 静默判假 → **明明有改动却"跳过提交"**，而且一声不响（踩过）。
+CHANGED=$(git status --porcelain | wc -l | tr -cd '0-9')
+[ -n "$CHANGED" ] || CHANGED=0
 echo "  待提交文件: $CHANGED"
 if [ "$CHANGED" -eq 0 ]; then
   echo "  没有改动，但仍会跑一遍审查确认线上是干净的。"
@@ -49,18 +53,34 @@ esac
 echo
 
 echo "════════ 3/4 提交 ════════"
+BEFORE=$(git rev-parse HEAD)
 if [ "$CHANGED" -gt 0 ]; then
   git add -A
   # 推送前硬检查：不能有文件被误删（历史上踩过：reset --mixed 后 add -A 把远端已有文件记成删除）
-  DEL=$(git diff --cached --name-status | grep -c '^D' || true)
-  if [ "$DEL" != "0" ]; then
-    echo "  ❌ 暂存区里有 $DEL 个**删除**："
-    git diff --cached --name-status | grep '^D' | sed 's/^/     /'
-    echo "     如果确认要删，请手工处理；否则先恢复。已中止。"
+  DEL=$("$NODE_BIN" -e "
+const cp=require('node:child_process');
+let out='';
+try{ out=cp.execFileSync('C:/Users/vzwyu/.workbuddy/binaries/PortableGit/versions/1.2.0/cmd/git.exe',
+  ['diff','--cached','--name-status'],{encoding:'utf8',stdio:['ignore','pipe','pipe']}); }catch(e){ process.exit(2); }
+const dels=out.split(/\r?\n/).filter(l=>l.startsWith('D'));
+if(dels.length){ console.log(dels.join('\n')); process.exit(1); }
+process.exit(0);
+")
+  DRC=$?
+  if [ "$DRC" != "0" ]; then
+    echo "  ❌ 暂存区里有删除项（或检查失败，码 $DRC）："
+    echo "$DEL" | sed 's/^/     /'
+    echo "     如果确认要删，请手工处理；否则先 git checkout HEAD -- . 恢复。已中止。"
     exit 1
   fi
   git commit -q -m "$MSG" || { echo "  ❌ 提交失败"; exit 1; }
   echo "  已提交: $(git log -1 --format='%h %s')"
+  # 断言真的前进了 —— 防「以为提交了其实没提交」这类静默失败
+  AFTER=$(git rev-parse HEAD)
+  if [ "$BEFORE" = "$AFTER" ]; then
+    echo "  ❌ 报了有改动但 HEAD 没前进，提交未生效。已中止。"
+    exit 1
+  fi
 else
   echo "  无改动，跳过提交。"
 fi
