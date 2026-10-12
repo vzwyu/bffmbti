@@ -18,7 +18,20 @@ export HOME=/c/Users/vzwyu
 
 MSG="${1:?用法: bash _dev/push.sh \"提交信息\"}"
 REPO="mbti-game"
-NODE_BIN="${NODE_BIN:-/c/Users/vzwyu/.workbuddy/binaries/node/versions/22.22.2-3/node.exe}"
+
+# ⚠️ 不要写死 node 路径：平台会不定时重新拉取运行时，目录名会变
+#    （实测 22.22.2-3 → 22.22.2-6，写死就会报 "No such file or directory"）。
+# 取 versions/ 下字典序最大的那个（版本号靠前的会被排在前面）。
+if [ -z "${NODE_BIN:-}" ]; then
+  for d in /c/Users/vzwyu/.workbuddy/binaries/node/versions/*/; do
+    [ -x "${d}node.exe" ] && NODE_BIN="${d}node.exe"
+  done
+fi
+if [ ! -x "${NODE_BIN:-}" ]; then
+  echo "❌ 找不到 node.exe（NODE_BIN=${NODE_BIN:-未设置}）；可用环境变量 NODE_BIN 指定"
+  exit 1
+fi
+echo "  node: $NODE_BIN"
 
 cd "$(dirname "$0")/.." || exit 1
 [ -d .git ] || { echo "❌ 当前目录不是 git 仓库"; exit 1; }

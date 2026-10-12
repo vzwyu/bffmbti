@@ -93,27 +93,39 @@ out.user_summary = out.users.map((u) => {
       if (v[ax.col] === ax.a) na++;
       else if (v[ax.col] === ax.b) nb++;
     }
+    // ⚠️ 口径必须与服务端 server/src/routes/vote.js 的 computeSummary 一致：
+    //    平票（**含 0:0 无票**）回落到本人自我认知；本人未填自评才返回 null（无法判定）。
+    //    早期版本把 0:0 单独当成「无有效票」不回落，导致零票用户被误判成「票数不足」。
+    const selfLetter = (self && self.length === 4) ? self[ax.selfIdx] : null;
     let pick = '';
     let note = '';
-    if (na === 0 && nb === 0) { pick = ''; note = '无有效票'; }
-    else if (na > nb) { pick = ax.a; }
-    else if (nb > na) { pick = ax.b; }
+    if (na > nb) { pick = ax.a; note = '有票多数'; }
+    else if (nb > na) { pick = ax.b; note = '有票多数'; }
     else {
-      pick = self ? self[ax.selfIdx] : ax.a;
-      note = '票数持平，取本人自我认知';
+      pick = selfLetter || '';
+      note = (na === 0 && nb === 0)
+        ? (selfLetter ? '无有效票（0:0），按规则回落本人自我认知' : '无有效票且未填自评')
+        : (selfLetter ? '票数持平，按规则回落本人自我认知' : '票数持平且未填自评');
     }
     letters[ax.key] = pick;
-    detail.push({ axis: ax.a + '/' + ax.b, [ax.a]: na, [ax.b]: nb, 判定: pick || '—', 说明: note });
+    detail.push({
+      axis: ax.a + '/' + ax.b, [ax.a]: na, [ax.b]: nb,
+      判定: pick || '—',
+      本人自评该轴: selfLetter || '',
+      是否平票: na === nb ? '是' : '否',
+      说明: note,
+    });
   }
   const consensus = (letters.ie && letters.ns && letters.tf && letters.pj)
     ? letters.ie + letters.ns + letters.tf + letters.pj : '';
+  const selfText = self || '未填';
   return {
     用户ID: u.id,
     昵称: u.nickname,
     性别: u.gender === 'unset' ? '未填' : u.gender === 'male' ? '男' : u.gender === 'female' ? '女' : '其他',
-    自我认知MBTI: self || '未填',
+    自我认知MBTI: selfText,
     大家认为MBTI: consensus || '票数不足',
-    是否一致: self && consensus ? (self === consensus ? '一致' : '不一致') : '—',
+    是否一致: (selfText === '未填' || !consensus) ? '—' : (selfText === consensus ? '一致' : '不一致'),
     有效票数: mine.length,
     投票人数_去重: new Set(mine.map((v) => v.voter_nickname)).size,
     注册时间: u.created_at,
